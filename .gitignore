@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Environment secrets — never commit the real .env
+.env
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.vercel
