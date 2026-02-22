@@ -479,6 +479,13 @@
         🔴 End Call
       </button>
 
+      <!-- New: Schedule Button (shown after call ends) -->
+      <button class="btn btn-primary" id="schedule-btn"
+        style="display:none; margin-top: 1rem; background: linear-gradient(135deg, #34d399 0%, #10b981 100%);"
+        onclick="window.open('https://links.echovoicelabs.com/widget/booking/2sA35Dfl0OKfLZfGvpX6', '_blank')">
+        📅 Schedule Your Appointment
+      </button>
+
       <hr class="divider" />
       <span class="back-link" onclick="resetToForm()">← Start a new call</span>
 
@@ -598,6 +605,7 @@
       startBtn.textContent = "🚀 Start Voice Call";
       endBtn.textContent = "🔴 End Call";
       endBtn.onclick = handleEndCall;
+      document.getElementById("schedule-btn").style.display = "none";
       showFormView();
     };
 
@@ -615,6 +623,10 @@
       setStatus("📞 Call ended. Thanks for connecting!");
       showAgentIndicator(false);
       callActive = false;
+
+      // Show the Schedule Button
+      document.getElementById("schedule-btn").style.display = "block";
+
       setTimeout(() => {
         endBtn.textContent = "🔄 Start Another Call";
         endBtn.onclick = () => resetToForm();
