@@ -619,13 +619,19 @@
 
     // Fires when the call ends for any reason
     retellWebClient.on("call_ended", () => {
-      console.log("call_ended");
+      console.log("Retell: Call ended event fired.");
       setStatus("📞 Call ended. Thanks for connecting!");
       showAgentIndicator(false);
       callActive = false;
 
       // Show the Schedule Button
-      document.getElementById("schedule-btn").style.display = "block";
+      const scheduleBtn = document.getElementById("schedule-btn");
+      if (scheduleBtn) {
+        console.log("Retell: Showing schedule button.");
+        scheduleBtn.style.setProperty("display", "block", "important");
+      } else {
+        console.error("Retell: Schedule button element not found!");
+      }
 
       setTimeout(() => {
         endBtn.textContent = "🔄 Start Another Call";
