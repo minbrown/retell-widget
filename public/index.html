@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Universal-Receptionist-Agent</title>
+  <title>Universal Agent AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -42,19 +42,6 @@
       border: 1px solid var(--border);
       border-radius: 32px;
       text-align: center;
-      animation: fadeIn 0.8s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
     }
 
     h1 {
@@ -76,10 +63,10 @@
     }
 
     label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       color: var(--muted);
       display: block;
       margin-bottom: 8px;
@@ -93,13 +80,13 @@
       border-radius: 12px;
       color: white;
       font-size: 15px;
-      outline: none;
       transition: 0.3s;
     }
 
     input:focus {
       border-color: var(--accent);
       background: rgba(255, 255, 255, 0.08);
+      outline: none;
     }
 
     .btn {
@@ -113,17 +100,14 @@
       font-weight: 700;
       cursor: pointer;
       transition: 0.3s;
-      margin-top: 10px;
     }
 
     .btn:hover {
       transform: scale(1.02);
-      filter: brightness(0.9);
     }
 
     .btn:disabled {
       opacity: 0.5;
-      cursor: not-allowed;
     }
 
     #call-ui {
@@ -186,28 +170,24 @@
 <body>
   <div class="container">
     <div id="setup-ui">
-      <h1>Universal-Receptionist-Agent</h1>
-      <p>Experience the next generation of business reception.</p>
-      <div style="font-size: 10px; color: #444; margin-bottom: 20px;">Build: 1.0.4</div>
+      <h1>Universal Agent</h1>
+      <p>Intelligent Voice Receptionist</p>
 
       <div class="form-group">
-        <label>Name</label>
+        <label>Your Name</label>
         <input type="text" id="name" placeholder="John Doe">
       </div>
       <div class="form-group">
-        <label>Email</label>
+        <label>Email Address</label>
         <input type="email" id="email" placeholder="john@example.com">
       </div>
       <div class="form-group">
-        <label>Business Name</label>
+        <label>Business Name (Optional)</label>
         <input type="text" id="businessName" placeholder="Aura MedSpa">
-      </div>
-      <div class="form-group">
-        <label>Website URL</label>
-        <input type="text" id="website" placeholder="https://yourbusiness.com">
       </div>
 
       <button class="btn" id="start-btn">Start Voice Session</button>
+      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.0.7</div>
     </div>
 
     <div id="call-ui">
@@ -218,55 +198,42 @@
         <div class="bar"></div>
         <div class="bar"></div>
       </div>
-      <button class="btn" style="background: red; color: white;" id="stop-btn">End Session</button>
+      <button class="btn" style="background: #ff3b3b; color: white;" id="stop-btn">End Session</button>
     </div>
   </div>
 
-  <!-- Load SDK with explicit global attachment check -->
-  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js" crossorigin="anonymous"></script>
+  <!-- Retell SDK -->
+  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
 
   <script>
-    console.log("🚀 Universal Agent Logic Initializing (Build 1.0.4)...");
-
     (function () {
+      console.log("🚀 Agent v1.0.7 Booting...");
+
       const init = () => {
-        console.log("📍 Initializing SDK Search...");
-
-        // Exhaustive check for the Retell SDK across all known global namespaces
-        const RetellClient =
+        // Try all possible global locations for the SDK
+        const SDK = window.RetellWebClient ||
           (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
-          (window.Retell && window.Retell.RetellWebClient) ||
-          window.RetellWebClient ||
-          (window.RetellSDK ? window.RetellSDK : null);
+          window.RetellSDK;
 
-        if (!RetellClient || typeof RetellClient !== 'function') {
-          console.error("❌ SDK not ready. Retrying...");
-          setTimeout(init, 1000);
+        if (!SDK || typeof SDK !== 'function') {
+          console.warn("Retrying SDK load...");
+          setTimeout(init, 500);
           return;
         }
 
-        console.log("✅ SDK Found! Setting up application...");
-
-        const client = (RetellClient.prototype && RetellClient.prototype.startCall)
-          ? new RetellClient()
-          : new RetellClient.RetellWebClient();
-
+        console.log("✅ SDK Connected");
+        const client = new SDK();
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
 
-        startBtn.addEventListener('click', async () => {
+        startBtn.onclick = async () => {
           const name = document.getElementById('name').value;
           const email = document.getElementById('email').value;
-          const businessName = document.getElementById('businessName').value;
-          const website = document.getElementById('website').value;
 
-          if (!name || !email) {
-            alert('Please provide name and email');
-            return;
-          }
+          if (!name || !email) return alert("Name and Email are required.");
 
           startBtn.disabled = true;
-          startBtn.innerText = 'Initializing Agent...';
+          startBtn.innerText = "Configuring...";
 
           try {
             const res = await fetch('/create-web-call', {
@@ -275,43 +242,32 @@
               body: JSON.stringify({
                 firstName: name,
                 email: email,
-                website: website,
-                businessName: businessName
+                businessName: document.getElementById('businessName').value
               })
             });
 
-            if (!res.ok) throw new Error('Failed to create call session');
             const { access_token } = await res.json();
-
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('call-ui').style.display = 'block';
 
             await client.startCall({ accessToken: access_token });
-          } catch (err) {
-            console.error('🚨 Session failed:', err);
-            alert('Error: ' + err.message);
+          } catch (e) {
+            alert("Connection failed. Please check your internet.");
             startBtn.disabled = false;
-            startBtn.innerText = 'Start Voice Session';
+            startBtn.innerText = "Start Voice Session";
           }
-        });
+        };
 
         client.on('call_started', () => {
-          document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
+          document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live';
         });
 
-        client.on('call_ended', () => {
-          location.reload();
-        });
-
-        if (stopBtn) stopBtn.onclick = () => client.stopCall();
+        client.on('call_ended', () => { location.reload(); });
+        stopBtn.onclick = () => client.stopCall();
       };
 
-      // Start the search as soon as possible
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
+      if (document.readyState === 'complete') init();
+      else window.addEventListener('load', init);
     })();
   </script>
 </body>
