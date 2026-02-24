@@ -485,27 +485,39 @@ app.post("/book-appointment", async (req, res) => {
 
     // 1. Find the contact ID by email (to ensure we link the appointment correctly)
     const searchUrl = `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${process.env.GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`;
-    const searchRes = await fetchWithRetry(searchUrl, { headers: GHL_HEADERS });
-    const searchData = searchRes.ok ? await searchRes.json() : null;
-    const contactId = searchData?.contact?.id;
+    let contactId = null;
+
+    try {
+      const searchRes = await fetchWithRetry(searchUrl, { headers: GHL_HEADERS });
+      const searchData = searchRes.ok ? await searchRes.json() : null;
+      contactId = searchData?.contact?.id;
+    } catch (e) {
+      console.log("   ⚠️ Contact search failed during booking.");
+    }
 
     if (!contactId) {
-      console.log("   ⚠️ Contact not found for booking, creating a temporary one...");
-      // Optional: You could create them here, but we usually have them from the start of the call
+      console.log("   ⚠️ Contact not found for booking. Attempting to book without ID (might fail) or creating one...");
+      // For better reliability, we should ideally have the contactId from the start of the call.
     }
 
     // 2. Create the appointment in GHL
-    // Note: process.env.GHL_CALENDAR_ID must be set in your .env
+    // Calculate endTime (default to 30 mins)
+    const startObj = new Date(date_time);
+    const endObj = new Date(startObj.getTime() + 30 * 60000); // 30 mins later
+    const endTime = endObj.toISOString();
+
     const bookingUrl = `https://services.leadconnectorhq.com/calendars/events/`;
     const bookingBody = {
       calendarId: process.env.GHL_CALENDAR_ID,
       locationId: process.env.GHL_LOCATION_ID,
       contactId: contactId,
-      startTime: date_time, // Expected format: ISO 8601 (e.g., 2024-05-20T14:00:00Z)
+      startTime: date_time,
+      endTime: endTime,
       title: `MedSpa Appt: ${first_name || 'Patient'}`,
       appointmentStatus: "confirmed"
     };
 
+    console.log("   📡 Sending booking request to GHL...");
     const bookingRes = await fetchWithRetry(bookingUrl, {
       method: "POST",
       headers: GHL_HEADERS,
@@ -518,6 +530,12 @@ app.post("/book-appointment", async (req, res) => {
     } else {
       const errorData = await bookingRes.text();
       console.error("   ❌ GHL Booking Error:", errorData);
+
+      // If unauthorized, it might be the API key
+      if (bookingRes.status === 401) {
+        return res.status(500).json({ status: "error", message: "Internal configuration error. Please try again later." });
+      }
+
       return res.status(500).json({ status: "error", message: "That time slot is no longer available. Could we try another time?" });
     }
 
