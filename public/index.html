@@ -181,6 +181,8 @@
       animation-delay: 0.3s;
     }
   </style>
+  <!-- SDK and Logic -->
+  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
 </head>
 
 <body>
@@ -188,6 +190,7 @@
     <div id="setup-ui">
       <h1>Universal-Receptionist-Agent</h1>
       <p>Experience the next generation of business reception.</p>
+      <div style="font-size: 10px; color: #444; margin-bottom: 20px;">Build: 1.0.2</div>
 
       <div class="form-group">
         <label>Name</label>
@@ -221,10 +224,10 @@
     </div>
   </div>
 
-  <!-- SDK and Logic -->
-  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
   <script>
+    console.log("🚀 Universal Agent Logic Initializing (Build 1.0.2)...");
     window.onload = () => {
+      console.log("📍 DOM Loaded. Initializing SDK Check...");
       // Robust SDK check - tries all possible global names for the Retell SDK
       const RetellClient = (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
         (window.Retell && window.Retell.RetellWebClient) ||
