@@ -141,15 +141,14 @@ app.post("/check-availability", async (req, res) => {
     Version: "2021-07-28"
   };
 
-  // Window: Now to 14 days from now, using ISO format for GHL v2
+  // Window: Now to 14 days from now, using GHL v2 required format
   const now = new Date();
-  const startDate = now.toISOString();
-  const end = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000));
-  const endDate = end.toISOString();
+  const future = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000));
 
-  const url = `https://services.leadconnectorhq.com/calendars/free-slots?calendarId=${process.env.GHL_CALENDAR_ID}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+  // GHL v2 Path: /calendars/{calendarId}/free-slots
+  const url = `https://services.leadconnectorhq.com/calendars/${process.env.GHL_CALENDAR_ID}/free-slots?startDate=${now.getTime()}&endDate=${future.getTime()}`;
 
-  console.log(`   📡 Querying GHL (ISO): ${url}`);
+  console.log(`   📡 Querying GHL (v2 PATH): ${url}`);
 
   try {
     const response = await fetch(url, { headers: GHL_HEADERS });
