@@ -568,6 +568,9 @@
       startBtn.textContent = "⏳ Connecting…";
 
       try {
+        console.log("🚀 Starting call creation process...");
+        console.log("📦 Data to send:", { firstName, lastName, phone, email, businessName, website });
+
         // ── 1. Ask backend to upsert GHL contact + create Retell web call ──
         startBtn.textContent = "🔍 Reviewing your website...";
 
@@ -577,12 +580,19 @@
           body: JSON.stringify({ firstName, lastName, phone, email, businessName, website }),
         });
 
+        console.log("📩 Server response status:", res.status);
+
         if (!res.ok) {
-          const { error } = await res.json().catch(() => ({ error: "Unknown server error." }));
-          throw new Error(error);
+          const errorText = await res.text();
+          console.error("❌ Server Error Response:", errorText);
+          const { error } = JSON.parse(errorText).catch(() => ({ error: "Unknown server error." }));
+          throw new Error(error || errorText);
         }
 
-        const { access_token } = await res.json();
+        const data = await res.json();
+        console.log("✅ Server data received:", data);
+        const { access_token } = data;
+
         if (!access_token) throw new Error("No access token received from server.");
 
         // ── 2. Switch to call view first (before startCall) ───────────────
@@ -591,12 +601,12 @@
         showAgentIndicator(false);
 
         // ── 3. Start the Retell voice call ────────────────────────────────
-        // This activates the microphone and begins the WebRTC session.
         await retellWebClient.startCall({ accessToken: access_token });
         callActive = true;
+        console.log("📞 Call started successfully.");
 
       } catch (err) {
-        console.error("Start call error:", err);
+        console.error("🏁 Start call process failed:", err);
         alert(`Could not start the call: ${err.message}`);
         startBtn.disabled = false;
         startBtn.textContent = "🚀 Start Voice Call";
