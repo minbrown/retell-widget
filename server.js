@@ -1,5 +1,5 @@
 /**
- * Universal Agent AI Receptionist - Build 1.0.6
+ * Universal Agent AI Receptionist - Build 1.1.0
  */
 import express from "express";
 import cors from "cors";
@@ -242,19 +242,18 @@ app.post("/book-appointment", async (req, res) => {
       calendarId: process.env.GHL_CALENDAR_ID,
       locationId: process.env.GHL_LOCATION_ID,
       contactId,
-      startTime: start.toISOString(), // Ensure clean ISO
+      startTime: start.toISOString(),
       endTime: end.toISOString(),
       title: `AI Appointment: ${first_name}`,
       appointmentStatus: "confirmed",
       ignoreFreeSlotValidation: true
     };
 
-    // Only add assignedUserId if it exists in env (for Round Robin calendars)
-    if (process.env.GHL_ASSIGNED_USER_ID) {
-      bookBody.assignedUserId = process.env.GHL_ASSIGNED_USER_ID;
-    }
+    // Use environment ID if available, otherwise fallback to confirmed User ID
+    const assignedUser = process.env.GHL_ASSIGNED_USER_ID || "4aMJQN6dJQHbu031eZ7F";
+    bookBody.assignedUserId = assignedUser;
 
-    console.log("   📡 Sending Booking Request to GHL (v2 Appointments)...");
+    console.log(`   📡 Sending Booking Request [User: ${assignedUser}]...`);
     const bookRes = await fetch("https://services.leadconnectorhq.com/calendars/events/appointments", {
       method: "POST",
       headers: { ...GHL_HEADERS, Version: "2021-04-15" },
