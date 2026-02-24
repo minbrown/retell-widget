@@ -2,260 +2,261 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal AI Receptionist</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #050505;
-            --accent: #ffffff;
-            --text: #ffffff;
-            --muted: #888888;
-            --glass: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.1);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal AI Receptionist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050505;
+      --accent: #ffffff;
+      --text: #ffffff;
+      --muted: #888888;
+      --glass: rgba(255, 255, 255, 0.03);
+      --border: rgba(255, 255, 255, 0.1);
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
 
-        .container {
-            width: 100%;
-            max-width: 420px;
-            padding: 40px;
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 32px;
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
-        }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      padding: 40px;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      text-align: center;
+      animation: fadeIn 0.8s ease-out;
+    }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -1px;
-        }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
 
-        p {
-            font-size: 15px;
-            color: var(--muted);
-            margin-bottom: 32px;
-        }
+    p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
 
-        .form-group {
-            text-align: left;
-            margin-bottom: 20px;
-        }
+    .form-group {
+      text-align: left;
+      margin-bottom: 20px;
+    }
 
-        label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--muted);
-            display: block;
-            margin-bottom: 8px;
-        }
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 8px;
+    }
 
-        input {
-            width: 100%;
-            padding: 14px 18px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: white;
-            font-size: 15px;
-            outline: none;
-            transition: 0.3s;
-        }
+    input {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: white;
+      font-size: 15px;
+      outline: none;
+      transition: 0.3s;
+    }
 
-        input:focus {
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.08);
-        }
+    input:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+    }
 
-        .btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--accent);
-            color: black;
-            border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.3s;
-            margin-top: 10px;
-        }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: black;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+    }
 
-        .btn:hover {
-            transform: scale(1.02);
-            filter: brightness(0.9);
-        }
+    .btn:hover {
+      transform: scale(1.02);
+      filter: brightness(0.9);
+    }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-        #call-ui {
-            display: none;
-        }
+    #call-ui {
+      display: none;
+    }
 
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            background: #00ff00;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            box-shadow: 0 0 10px #00ff00;
-        }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background: #00ff00;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      box-shadow: 0 0 10px #00ff00;
+    }
 
-        .wave {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            height: 40px;
-            margin: 30px 0;
-        }
+    .wave {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 40px;
+      margin: 30px 0;
+    }
 
-        .bar {
-            width: 4px;
-            height: 10px;
-            background: white;
-            border-radius: 2px;
-            animation: bounce 1s infinite ease-in-out;
-        }
+    .bar {
+      width: 4px;
+      height: 10px;
+      background: white;
+      border-radius: 2px;
+      animation: bounce 1s infinite ease-in-out;
+    }
 
-        @keyframes bounce {
+    @keyframes bounce {
 
-            0%,
-            100% {
-                height: 10px;
-            }
+      0%,
+      100% {
+        height: 10px;
+      }
 
-            50% {
-                height: 30px;
-            }
-        }
+      50% {
+        height: 30px;
+      }
+    }
 
-        .bar:nth-child(2) {
-            animation-delay: 0.1s;
-        }
+    .bar:nth-child(2) {
+      animation-delay: 0.1s;
+    }
 
-        .bar:nth-child(3) {
-            animation-delay: 0.2s;
-        }
+    .bar:nth-child(3) {
+      animation-delay: 0.2s;
+    }
 
-        .bar:nth-child(4) {
-            animation-delay: 0.3s;
-        }
-    </style>
+    .bar:nth-child(4) {
+      animation-delay: 0.3s;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div id="setup-ui">
-            <h1>Universal Agent</h1>
-            <p>Experience the next generation of business reception.</p>
+  <div class="container">
+    <div id="setup-ui">
+      <h1>Universal Agent</h1>
+      <p>Experience the next generation of business reception.</p>
 
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" id="name" placeholder="John Doe">
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="email" placeholder="john@example.com">
-            </div>
-            <div class="form-group">
-                <label>Business / Website</label>
-                <input type="text" id="website" placeholder="https://yourbusiness.com">
-            </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="name" placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="john@example.com">
+      </div>
+      <div class="form-group">
+        <label>Business / Website</label>
+        <input type="text" id="website" placeholder="https://yourbusiness.com">
+      </div>
 
-            <button class="btn" id="start-btn">Start Voice Session</button>
-        </div>
-
-        <div id="call-ui">
-            <h1 id="status-text">Connecting...</h1>
-            <div class="wave">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-            </div>
-            <button class="btn" style="background: red; color: white;" id="stop-btn">End Session</button>
-        </div>
+      <button class="btn" id="start-btn">Start Voice Session</button>
     </div>
 
-    <!-- SDK and Logic -->
-    <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
-    <script>
-        const { RetellWebClient } = window.RetellSDK;
-        const client = new RetellWebClient();
+    <div id="call-ui">
+      <h1 id="status-text">Connecting...</h1>
+      <div class="wave">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+      <button class="btn" style="background: red; color: white;" id="stop-btn">End Session</button>
+    </div>
+  </div>
 
-        document.getElementById('start-btn').onclick = async () => {
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const website = document.getElementById('website').value;
+  <!-- SDK and Logic -->
+  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
+  <script>
+    const { RetellWebClient } = window.RetellSDK;
+    const client = new RetellWebClient();
 
-            if (!name || !email) return alert('Please provide name and email');
+    document.getElementById('start-btn').onclick = async () => {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const businessName = document.getElementById('businessName').value;
+      const website = document.getElementById('website').value;
 
-            document.getElementById('start-btn').disabled = true;
-            document.getElementById('start-btn').innerText = 'Initializing...';
+      if (!name || !email) return alert('Please provide name and email');
 
-            const res = await fetch('/create-web-call', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firstName: name, email, website, businessName: 'Our Business' })
-            });
-            const { access_token } = await res.json();
+      document.getElementById('start-btn').disabled = true;
+      document.getElementById('start-btn').innerText = 'Initializing...';
 
-            document.getElementById('setup-ui').style.display = 'none';
-            document.getElementById('call-ui').style.display = 'block';
+      const res = await fetch('/create-web-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName: name, email, website, businessName })
+      });
+      const { access_token } = await res.json();
 
-            client.startCall({ accessToken: access_token });
-        };
+      document.getElementById('setup-ui').style.display = 'none';
+      document.getElementById('call-ui').style.display = 'block';
 
-        client.on('call_started', () => {
-            document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
-        });
+      client.startCall({ accessToken: access_token });
+    };
 
-        client.on('call_ended', () => {
-            location.reload();
-        });
+    client.on('call_started', () => {
+      document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
+    });
 
-        document.getElementById('stop-btn').onclick = () => client.stopCall();
-    </script>
+    client.on('call_ended', () => {
+      location.reload();
+    });
+
+    document.getElementById('stop-btn').onclick = () => client.stopCall();
+  </script>
 </body>
 
 </html>
