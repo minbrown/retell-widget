@@ -225,8 +225,17 @@
   <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
   <script>
     window.onload = () => {
-      const { RetellWebClient } = window.RetellSDK;
-      const client = new RetellWebClient();
+      // Robust SDK check - tries all possible global names for the Retell SDK
+      const RetellClient = (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
+        (window.Retell && window.Retell.RetellWebClient) ||
+        window.RetellWebClient;
+
+      if (!RetellClient) {
+        console.error('Retell SDK not found on window object.');
+        return;
+      }
+
+      const client = new RetellClient();
       const startBtn = document.getElementById('start-btn');
       const stopBtn = document.getElementById('stop-btn');
 
