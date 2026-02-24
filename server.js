@@ -227,22 +227,27 @@ app.post("/book-appointment", async (req, res) => {
 
     // 2. Schedule Appointment
     const start = new Date(date_time);
-    const duration = 30; // 30 min default for this calendar
+    if (isNaN(start.getTime())) {
+      console.error("   ❌ Invalid date_time received:", date_time);
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    const duration = 30; // 30 min default
     const end = new Date(start.getTime() + duration * 60000);
 
     const bookBody = {
       calendarId: process.env.GHL_CALENDAR_ID,
       locationId: process.env.GHL_LOCATION_ID,
       contactId,
-      startTime: date_time,
+      startTime: start.toISOString(), // Ensure clean ISO
       endTime: end.toISOString(),
-      title: `Universal Appt: ${first_name}`,
+      title: `AI Appointment: ${first_name}`,
       appointmentStatus: "confirmed",
-      assignedUserId: "4aMJQN6dJQHbu031eZ7F", // Required for this RR calendar
+      assignedUserId: "4aMJQN6dJQHbu031eZ7F",
       ignoreFreeSlotValidation: true
     };
 
-    console.log("   📡 Sending Booking Request to Verified GHL v2 Endpoint...");
+    console.log("   📡 Sending Booking Request to GHL (v2 Appointments)...");
     const bookRes = await fetch("https://services.leadconnectorhq.com/calendars/events/appointments", {
       method: "POST",
       headers: { ...GHL_HEADERS, Version: "2021-04-15" },
