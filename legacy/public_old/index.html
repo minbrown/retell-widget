@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice AI Assistant</title>
+  <meta name="description" content="Talk to our AI assistant in real time — no phone call needed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ───────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #030712;
+      --surface: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #818cf8;
+      --accent-glow: rgba(129, 140, 248, 0.3);
+      --accent-h: #a5b4fc;
+      --danger: #f87171;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --success: #34d399;
+      --radius: 24px;
+      --glass: blur(16px);
+    }
+
+    body {
+      font-family: "Outfit", "Inter", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Background Animation ────────────────────────────────────────────── */
+    body::before,
+    body::after {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(80px);
+      z-index: -1;
+      animation: drift 20s infinite alternate linear;
+    }
+
+    body::before {
+      top: -100px;
+      left: -100px;
+    }
+
+    body::after {
+      bottom: -100px;
+      right: -100px;
+      animation-duration: 25s;
+      animation-delay: -5s;
+    }
+
+    @keyframes drift {
+      from {
+        transform: translate(0, 0) scale(1);
+      }
+
+      to {
+        transform: translate(100px, 50px) scale(1.1);
+      }
+    }
+
+    /* ── Card ───────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+      animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .card-header .avatar {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 30px var(--accent-glow));
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .card-header .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .card-header h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(to bottom, #fff, #9ca3af);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .card-header p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-top: 0.6rem;
+      max-width: 280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Form ───────────────────────────────────────────────────────────── */
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--text);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      outline: none;
+    }
+
+    input::placeholder {
+      color: #4b5563;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.1);
+    }
+
+    input.error {
+      border-color: var(--danger);
+    }
+
+    .error-msg {
+      font-size: 0.75rem;
+      color: var(--danger);
+      margin-top: 0.4rem;
+      display: none;
+      font-weight: 500;
+    }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+    .btn {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-top: 0.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #fff;
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.6);
+      filter: brightness(1.1);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 113, 113, 0.2);
+      border-color: var(--danger);
+    }
+
+    /* ── Call UI ────────────────────────────────────────────────────────── */
+    #status {
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 2.5rem;
+      min-height: 1.4em;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* Agent-talking indicator */
+    #agent-indicator {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 0.9rem;
+      color: var(--success);
+      font-weight: 600;
+      margin-bottom: 2.5rem;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .wave-bars {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 40px;
+    }
+
+    .wave-bars span {
+      display: inline-block;
+      width: 6px;
+      background: linear-gradient(to bottom, var(--success), #10b981);
+      border-radius: 10px;
+      animation: wave 1s ease-in-out infinite;
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
+    }
+
+    .wave-bars span:nth-child(1) {
+      animation-delay: 0.0s;
+      height: 15px;
+    }
+
+    .wave-bars span:nth-child(2) {
+      animation-delay: 0.1s;
+      height: 25px;
+    }
+
+    .wave-bars span:nth-child(3) {
+      animation-delay: 0.2s;
+      height: 40px;
+    }
+
+    .wave-bars span:nth-child(4) {
+      animation-delay: 0.1s;
+      height: 25px;
+    }
+
+    .wave-bars span:nth-child(5) {
+      animation-delay: 0.0s;
+      height: 15px;
+    }
+
+    @keyframes wave {
+
+      0%,
+      100% {
+        transform: scaleY(0.5);
+        opacity: 0.7;
+      }
+
+      50% {
+        transform: scaleY(1);
+        opacity: 1;
+      }
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    .back-link {
+      display: inline-block;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: color 0.2s;
+      font-weight: 500;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    .card-header .avatar {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 30px var(--accent-glow));
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .card-header .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+
+    <!-- Header (always visible) -->
+    <div class="card-header">
+      <div class="avatar">
+        <img src="/agent-avatar.png" alt="AI Assistant" />
+      </div>
+      <h1>Talk to Our AI Assistant</h1>
+      <p>Fill in your details and connect instantly — no phone needed.</p>
+    </div>
+
+    <!-- ── STEP 1: Contact Form (Cache Buster: v1.0.1) ─────────────────────── -->
+    <div id="form-view">
+
+      <!-- First Name + Last Name side by side -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" placeholder="Jane" autocomplete="given-name" />
+          <div class="error-msg" id="firstName-error">Required.</div>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" placeholder="Smith" autocomplete="family-name" />
+          <div class="error-msg" id="lastName-error">Required.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" placeholder="+1 555 000 0000" autocomplete="tel" />
+        <div class="error-msg" id="phone-error">Please enter a valid phone number.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+        <div class="error-msg" id="email-error">Please enter a valid email address.</div>
+      </div>
+
+      <!-- New Fields: Business Name & Website -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="businessName">Business Name</label>
+          <input type="text" id="businessName" placeholder="Aura MedSpa" />
+        </div>
+        <div class="form-group">
+          <label for="website">Website</label>
+          <input type="url" id="website" placeholder="https://auramedspa.com" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="start-btn" onclick="handleStartCall()">
+        🚀 Start Voice Call
+      </button>
+
+    </div><!-- /#form-view -->
+
+    <!-- ── STEP 2: Active Call UI (hidden until call starts) ───────────── -->
+    <div id="call-view" style="display:none; text-align:center;">
+
+      <!-- Status message -->
+      <div id="status">Connecting…</div>
+
+      <!-- Animated wave indicator — visible only while agent is talking -->
+      <div id="agent-indicator">
+        <div class="wave-bars">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        Agent is speaking
+      </div>
+
+      <button class="btn btn-danger" id="end-btn" onclick="handleEndCall()">
+        🔴 End Call
+      </button>
+
+      <!-- New: Schedule Button (shown after call ends) -->
+      <button class="btn btn-primary" id="schedule-btn"
+        style="display:none; margin-top: 1rem; background: linear-gradient(135deg, #34d399 0%, #10b981 100%);"
+        onclick="window.open('https://links.echovoicelabs.com/widget/booking/2sA35Dfl0OKfLZfGvpX6', '_blank')">
+        📅 Schedule Your Appointment
+      </button>
+
+      <hr class="divider" />
+      <span class="back-link" onclick="resetToForm()">← Start a new call</span>
+
+    </div><!-- /#call-view -->
+
+  </div><!-- /.card -->
+
+  <!-- Retell Web SDK — bundled locally by build.js, served as a static file. -->
+  <script src="/retell-sdk.js"></script>
+  <script>
+    // ── SDK Init ───────────────────────────────────────────────────────────
+    // RetellWebClient is exported as window.RetellSDK.RetellWebClient from
+    // the locally bundled SDK file (built by build.js).
+    const { RetellWebClient } = window.RetellSDK;
+    const retellWebClient = new RetellWebClient();
+    let callActive = false;
+
+    // ── DOM refs ───────────────────────────────────────────────────────────
+    const formView = document.getElementById("form-view");
+    const callView = document.getElementById("call-view");
+    const statusEl = document.getElementById("status");
+    const agentIndicator = document.getElementById("agent-indicator");
+    const startBtn = document.getElementById("start-btn");
+    const endBtn = document.getElementById("end-btn");
+
+    // ── View helpers ───────────────────────────────────────────────────────
+    function showCallView() {
+      formView.style.display = "none";
+      callView.style.display = "block";
+    }
+    function showFormView() {
+      callView.style.display = "none";
+      formView.style.display = "block";
+    }
+    function setStatus(msg) { statusEl.textContent = msg; }
+    function showAgentIndicator(on) {
+      agentIndicator.style.display = on ? "flex" : "none";
+    }
+
+    // ── Validation ─────────────────────────────────────────────────────────
+    function showErr(msgId, inputId, show) {
+      document.getElementById(msgId).style.display = show ? "block" : "none";
+      document.getElementById(inputId).classList.toggle("error", show);
+    }
+
+    function validateForm(firstName, lastName, phone, email) {
+      let ok = true;
+      if (!firstName.trim()) { showErr("firstName-error", "firstName", true); ok = false; } else { showErr("firstName-error", "firstName", false); }
+      if (!lastName.trim()) { showErr("lastName-error", "lastName", true); ok = false; } else { showErr("lastName-error", "lastName", false); }
+      if (!/\d{7,}/.test(phone.replace(/\D/g, ""))) { showErr("phone-error", "phone", true); ok = false; } else { showErr("phone-error", "phone", false); }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { showErr("email-error", "email", true); ok = false; } else { showErr("email-error", "email", false); }
+      return ok;
+    }
+
+    // ── Start Call ─────────────────────────────────────────────────────────
+    // Exposed on window so the inline onclick="" attribute can reach it.
+    window.handleStartCall = async function () {
+      const firstName = document.getElementById("firstName").value.trim();
+      const lastName = document.getElementById("lastName").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const businessName = document.getElementById("businessName").value.trim();
+      const website = document.getElementById("website").value.trim();
+
+      if (!validateForm(firstName, lastName, phone, email)) return;
+
+      startBtn.disabled = true;
+      startBtn.textContent = "⏳ Connecting…";
+
+      try {
+        console.log("🚀 Starting call creation process...");
+        console.log("📦 Data to send:", { firstName, lastName, phone, email, businessName, website });
+
+        // ── 1. Ask backend to upsert GHL contact + create Retell web call ──
+        startBtn.textContent = "🔍 Reviewing your website...";
+
+        const res = await fetch("/create-web-call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ firstName, lastName, phone, email, businessName, website }),
+        });
+
+        console.log("📩 Server response status:", res.status);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("❌ Server Error Response:", errorText);
+          const { error } = JSON.parse(errorText).catch(() => ({ error: "Unknown server error." }));
+          throw new Error(error || errorText);
+        }
+
+        const data = await res.json();
+        console.log("✅ Server data received:", data);
+        const { access_token } = data;
+
+        if (!access_token) throw new Error("No access token received from server.");
+
+        // ── 2. Switch to call view first (before startCall) ───────────────
+        showCallView();
+        setStatus("🔗 Connecting to agent…");
+        showAgentIndicator(false);
+
+        // ── 3. Start the Retell voice call ────────────────────────────────
+        await retellWebClient.startCall({ accessToken: access_token });
+        callActive = true;
+        console.log("📞 Call started successfully.");
+
+      } catch (err) {
+        console.error("🏁 Start call process failed:", err);
+        alert(`Could not start the call: ${err.message}`);
+        startBtn.disabled = false;
+        startBtn.textContent = "🚀 Start Voice Call";
+      }
+    };
+
+    // ── End Call ───────────────────────────────────────────────────────────
+    window.handleEndCall = function () {
+      retellWebClient.stopCall();
+      // call_ended event will fire and reset the UI
+    };
+
+    // ── Reset to form ──────────────────────────────────────────────────────
+    window.resetToForm = function () {
+      if (callActive) retellWebClient.stopCall();
+      callActive = false;
+      setStatus("Connecting…");
+      showAgentIndicator(false);
+      startBtn.disabled = false;
+      startBtn.textContent = "🚀 Start Voice Call";
+      endBtn.textContent = "🔴 End Call";
+      endBtn.onclick = handleEndCall;
+      document.getElementById("schedule-btn").style.display = "none";
+      showFormView();
+    };
+
+    // ── Retell SDK Events ─────────────────────────────────────────────────
+
+    // Fires when the WebRTC session is fully established
+    retellWebClient.on("call_started", () => {
+      console.log("call_started");
+      setStatus("✅ Connected — start speaking!");
+    });
+
+    // Fires when the call ends for any reason
+    retellWebClient.on("call_ended", () => {
+      console.log("Retell: Call ended event fired.");
+      setStatus("📞 Call ended. Thanks for connecting!");
+      showAgentIndicator(false);
+      callActive = false;
+
+      // Show the Schedule Button
+      const scheduleBtn = document.getElementById("schedule-btn");
+      if (scheduleBtn) {
+        console.log("Retell: Showing schedule button.");
+        scheduleBtn.style.display = "block";
+      } else {
+        console.error("Retell: Schedule button element not found!");
+      }
+
+      setTimeout(() => {
+        endBtn.textContent = "🔄 Start Another Call";
+        endBtn.onclick = () => resetToForm();
+      }, 1500);
+    });
+
+    // Fires at the start of each AI utterance
+    retellWebClient.on("agent_start_talking", () => {
+      console.log("agent_start_talking");
+      showAgentIndicator(true);
+    });
+
+    // Fires when the AI finishes speaking
+    retellWebClient.on("agent_stop_talking", () => {
+      console.log("agent_stop_talking");
+      showAgentIndicator(false);
+    });
+
+    // Fires on SDK or connection errors
+    retellWebClient.on("error", (error) => {
+      console.error("Retell SDK error:", error);
+      setStatus(`⚠️ Error: ${error?.message || "Connection issue. Please try again."}`);
+      showAgentIndicator(false);
+      retellWebClient.stopCall();
+      callActive = false;
+    });
+
+  </script>
+
+</body>
+
+</html>

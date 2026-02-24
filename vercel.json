@@ -1,0 +1,35 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "server.js",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "public/**/*",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/create-web-call",
+            "dest": "server.js"
+        },
+        {
+            "src": "/check-availability",
+            "dest": "server.js"
+        },
+        {
+            "src": "/book-appointment",
+            "dest": "server.js"
+        },
+        {
+            "src": "/retell-post-call",
+            "dest": "server.js"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/public/$1"
+        }
+    ]
+}
