@@ -190,36 +190,77 @@ app.post("/check-availability", async (req, res) => {
 app.post("/book-appointment", async (req, res) => {
   const { args } = req.body;
   const { date_time, email, first_name } = args || {};
-  console.log(`📅 Booking for ${first_name}...`);
+  console.log(`\n📅 BOOKING REQUEST: ${first_name} (${email}) at ${date_time}`);
 
-  const GHL_HEADERS = { Authorization: `Bearer ${process.env.GHL_API_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" };
-
-  // Calculate end time
-  const start = new Date(date_time);
-  const end = new Date(start.getTime() + 30 * 60000);
+  const GHL_HEADERS = {
+    Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+    "Content-Type": "application/json",
+    Version: "2021-07-28"
+  };
 
   try {
-    // Find contact ID by email first
+    // 1. Find or Create Contact ID
     const searchRes = await fetch(`https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${process.env.GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`, { headers: GHL_HEADERS });
-    const contactId = (await searchRes.json())?.contact?.id;
+    const searchData = await searchRes.json();
+    let contactId = searchData?.contact?.id;
 
+    if (!contactId) {
+      console.log("   ⚠️ Contact not found during booking. Creating new one...");
+      const createRes = await fetch("https://services.leadconnectorhq.com/contacts/", {
+        method: "POST",
+        headers: GHL_HEADERS,
+        body: JSON.stringify({
+          firstName: first_name,
+          email,
+          locationId: process.env.GHL_LOCATION_ID,
+          tags: ["Universal Agent Booking-Only"]
+        })
+      });
+      const createData = await createRes.json();
+      contactId = createData?.contact?.id;
+    }
+
+    if (!contactId) {
+      console.error("   ❌ Failed to identify/create contact for booking.");
+      return res.status(400).json({ error: "Contact Error" });
+    }
+
+    // 2. Schedule Appointment
+    const start = new Date(date_time);
+    const end = new Date(start.getTime() + 30 * 60000); // 30 min duration
+
+    const bookBody = {
+      calendarId: process.env.GHL_CALENDAR_ID,
+      locationId: process.env.GHL_LOCATION_ID,
+      contactId,
+      startTime: date_time,
+      endTime: end.toISOString(),
+      title: `Universal Appt: ${first_name}`,
+      appointmentStatus: "confirmed"
+    };
+
+    console.log("   📡 Sending Booking Request to GHL...");
     const bookRes = await fetch("https://services.leadconnectorhq.com/calendars/events/", {
       method: "POST",
       headers: GHL_HEADERS,
-      body: JSON.stringify({
-        calendarId: process.env.GHL_CALENDAR_ID,
-        locationId: process.env.GHL_LOCATION_ID,
-        contactId,
-        startTime: date_time,
-        endTime: end.toISOString(),
-        title: `Universal Appt: ${first_name}`
-      })
+      body: JSON.stringify(bookBody)
     });
 
-    if (bookRes.ok) return res.json({ status: "success", message: "Confirmed!" });
-    return res.status(400).json({ error: "Booking failed" });
+    const bookData = await bookRes.json();
+
+    if (bookRes.ok) {
+      console.log("   ✅ Booking Confirmed!");
+      return res.json({ status: "success", message: "Your appointment is confirmed!" });
+    } else {
+      console.error("   ❌ GHL Booking Rejection:", JSON.stringify(bookData));
+      return res.status(400).json({
+        error: "GHL rejected booking",
+        details: bookData.message || "Time slot no longer available"
+      });
+    }
   } catch (e) {
-    res.status(500).json({ error: "Server error" });
+    console.error("   ❌ Fatal Booking Server Error:", e.message);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
