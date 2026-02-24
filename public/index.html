@@ -191,7 +191,7 @@
       </div>
 
       <button class="btn" id="start-btn">Start Voice Session</button>
-      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.1.4</div>
+      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.1.5</div>
     </div>
 
     <div id="call-ui">
@@ -206,25 +206,24 @@
     </div>
   </div>
 
-  <!-- Retell SDK -->
-  <script id="retell-sdk" src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/bundle.js"
-    onload="console.log('📦 SDK Script OnLoad Fired')" onerror="console.error('📦 SDK Script Failed to Load')"></script>
+  <!-- Reliable SDK Load Chain -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/eventemitter3/5.0.1/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.25.1/dist/livekit-client.umd.min.js"></script>
+  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.umd.js"
+    onload="console.log('📦 SDK Loaded')"></script>
 
   <script>
     (function () {
-      console.log("🚀 Agent v1.1.4 Booting...");
+      console.log("🚀 Agent v1.1.5 Booting...");
 
       const init = () => {
-        console.log("📍 Check: window.RetellWebClient?", !!window.RetellWebClient);
-        console.log("📍 Check: window.RetellSDK?", !!window.RetellSDK);
-
-        // Broadest possible search for the client class
-        const SDK = window.RetellWebClient ||
-          (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
-          (window.RetellSDK && typeof window.RetellSDK === 'function' ? window.RetellSDK : null);
+        // Search in the UMD namespace or direct global
+        const SDK = (window.retellClientJsSdk && window.retellClientJsSdk.RetellWebClient) ||
+          window.RetellWebClient ||
+          window.RetellSDK;
 
         if (!SDK) {
-          console.warn("Retrying SDK load...");
+          console.warn("Searching for SDK...");
           setTimeout(init, 1000);
           return;
         }
