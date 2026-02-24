@@ -181,8 +181,6 @@
       animation-delay: 0.3s;
     }
   </style>
-  <!-- SDK and Logic -->
-  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
 </head>
 
 <body>
@@ -190,7 +188,7 @@
     <div id="setup-ui">
       <h1>Universal-Receptionist-Agent</h1>
       <p>Experience the next generation of business reception.</p>
-      <div style="font-size: 10px; color: #444; margin-bottom: 20px;">Build: 1.0.3</div>
+      <div style="font-size: 10px; color: #444; margin-bottom: 20px;">Build: 1.0.4</div>
 
       <div class="form-group">
         <label>Name</label>
@@ -224,49 +222,51 @@
     </div>
   </div>
 
+  <!-- Load SDK with explicit global attachment check -->
+  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js" crossorigin="anonymous"></script>
+
   <script>
-    console.log("🚀 Universal Agent Logic Initializing (Build 1.0.3)...");
+    console.log("🚀 Universal Agent Logic Initializing (Build 1.0.4)...");
 
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log("📍 DOM Ready. Initializing SDK Check...");
+    (function () {
+      const init = () => {
+        console.log("📍 Initializing SDK Search...");
 
-      const setupButton = () => {
-        // Robust SDK check - tries all possible global names for the Retell SDK
-        const RetellClient = (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
+        // Exhaustive check for the Retell SDK across all known global namespaces
+        const RetellClient =
+          (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
           (window.Retell && window.Retell.RetellWebClient) ||
-          window.RetellWebClient;
+          window.RetellWebClient ||
+          (window.RetellSDK ? window.RetellSDK : null);
 
-        if (!RetellClient) {
-          console.error('❌ Retell SDK not found. Retrying in 1s...');
-          setTimeout(setupButton, 1000);
+        if (!RetellClient || typeof RetellClient !== 'function') {
+          console.error("❌ SDK not ready. Retrying...");
+          setTimeout(init, 1000);
           return;
         }
 
-        console.log("✅ SDK Found. Attaching Event Listeners...");
-        const client = new RetellClient();
+        console.log("✅ SDK Found! Setting up application...");
+
+        const client = (RetellClient.prototype && RetellClient.prototype.startCall)
+          ? new RetellClient()
+          : new RetellClient.RetellWebClient();
+
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
 
-        if (!startBtn) {
-          console.error('❌ Start Button not found in DOM.');
-          return;
-        }
-
         startBtn.addEventListener('click', async () => {
-          console.log("🖱️ Start Button Clicked");
           const name = document.getElementById('name').value;
           const email = document.getElementById('email').value;
           const businessName = document.getElementById('businessName').value;
           const website = document.getElementById('website').value;
 
           if (!name || !email) {
-            alert('Please provide your name and email to start.');
+            alert('Please provide name and email');
             return;
           }
 
           startBtn.disabled = true;
-          startBtn.innerText = 'Initializing...';
-          console.log("🧪 Requesting access token for:", email);
+          startBtn.innerText = 'Initializing Agent...';
 
           try {
             const res = await fetch('/create-web-call', {
@@ -280,46 +280,39 @@
               })
             });
 
-            if (!res.ok) {
-              const errorData = await res.json();
-              throw new Error(errorData.error || 'Failed to create call');
-            }
-
+            if (!res.ok) throw new Error('Failed to create call session');
             const { access_token } = await res.json();
-            console.log("🔑 Access token received. Starting Voice Session...");
 
             document.getElementById('setup-ui').style.display = 'none';
             document.getElementById('call-ui').style.display = 'block';
 
             await client.startCall({ accessToken: access_token });
           } catch (err) {
-            console.error('🚨 Call initialization failed:', err);
-            alert(`Could not start session: ${err.message}`);
+            console.error('🚨 Session failed:', err);
+            alert('Error: ' + err.message);
             startBtn.disabled = false;
             startBtn.innerText = 'Start Voice Session';
           }
         });
 
         client.on('call_started', () => {
-          console.log("🎙️ Session Live");
           document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
         });
 
         client.on('call_ended', () => {
-          console.log("🏁 Session Ended");
           location.reload();
         });
 
-        if (stopBtn) {
-          stopBtn.onclick = () => {
-            console.log("🛑 Manual Stop Triggered");
-            client.stopCall();
-          };
-        }
+        if (stopBtn) stopBtn.onclick = () => client.stopCall();
       };
 
-      setupButton();
-    });
+      // Start the search as soon as possible
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
   </script>
 </body>
 
