@@ -191,7 +191,7 @@
       </div>
 
       <button class="btn" id="start-btn">Start Voice Session</button>
-      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.1.3</div>
+      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.1.4</div>
     </div>
 
     <div id="call-ui">
@@ -207,21 +207,25 @@
   </div>
 
   <!-- Retell SDK -->
-  <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
+  <script id="retell-sdk" src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/bundle.js"
+    onload="console.log('📦 SDK Script OnLoad Fired')" onerror="console.error('📦 SDK Script Failed to Load')"></script>
 
   <script>
     (function () {
-      console.log("🚀 Agent v1.1.3 Booting...");
+      console.log("🚀 Agent v1.1.4 Booting...");
 
       const init = () => {
-        // Try all possible global locations for the SDK
+        console.log("📍 Check: window.RetellWebClient?", !!window.RetellWebClient);
+        console.log("📍 Check: window.RetellSDK?", !!window.RetellSDK);
+
+        // Broadest possible search for the client class
         const SDK = window.RetellWebClient ||
           (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
-          window.RetellSDK;
+          (window.RetellSDK && typeof window.RetellSDK === 'function' ? window.RetellSDK : null);
 
-        if (!SDK || typeof SDK !== 'function') {
+        if (!SDK) {
           console.warn("Retrying SDK load...");
-          setTimeout(init, 500);
+          setTimeout(init, 1000);
           return;
         }
 
