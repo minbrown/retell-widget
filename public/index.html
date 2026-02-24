@@ -190,7 +190,7 @@
     <div id="setup-ui">
       <h1>Universal-Receptionist-Agent</h1>
       <p>Experience the next generation of business reception.</p>
-      <div style="font-size: 10px; color: #444; margin-bottom: 20px;">Build: 1.0.2</div>
+      <div style="font-size: 10px; color: #444; margin-bottom: 20px;">Build: 1.0.3</div>
 
       <div class="form-group">
         <label>Name</label>
@@ -225,75 +225,101 @@
   </div>
 
   <script>
-    console.log("🚀 Universal Agent Logic Initializing (Build 1.0.2)...");
-    window.onload = () => {
-      console.log("📍 DOM Loaded. Initializing SDK Check...");
-      // Robust SDK check - tries all possible global names for the Retell SDK
-      const RetellClient = (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
-        (window.Retell && window.Retell.RetellWebClient) ||
-        window.RetellWebClient;
+    console.log("🚀 Universal Agent Logic Initializing (Build 1.0.3)...");
 
-      if (!RetellClient) {
-        console.error('Retell SDK not found on window object.');
-        return;
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("📍 DOM Ready. Initializing SDK Check...");
 
-      const client = new RetellClient();
-      const startBtn = document.getElementById('start-btn');
-      const stopBtn = document.getElementById('stop-btn');
+      const setupButton = () => {
+        // Robust SDK check - tries all possible global names for the Retell SDK
+        const RetellClient = (window.RetellSDK && window.RetellSDK.RetellWebClient) ||
+          (window.Retell && window.Retell.RetellWebClient) ||
+          window.RetellWebClient;
 
-      startBtn.addEventListener('click', async () => {
-        const name = document.getElementById('name').value;
-        const email = document.getElementById('email').value;
-        const businessName = document.getElementById('businessName').value;
-        const website = document.getElementById('website').value;
-
-        if (!name || !email) {
-          alert('Please provide name and email');
+        if (!RetellClient) {
+          console.error('❌ Retell SDK not found. Retrying in 1s...');
+          setTimeout(setupButton, 1000);
           return;
         }
 
-        startBtn.disabled = true;
-        startBtn.innerText = 'Initializing...';
+        console.log("✅ SDK Found. Attaching Event Listeners...");
+        const client = new RetellClient();
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
 
-        try {
-          const res = await fetch('/create-web-call', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              firstName: name,
-              email: email,
-              website: website,
-              businessName: businessName
-            })
-          });
-
-          if (!res.ok) throw new Error('Failed to create call');
-
-          const { access_token } = await res.json();
-
-          document.getElementById('setup-ui').style.display = 'none';
-          document.getElementById('call-ui').style.display = 'block';
-
-          await client.startCall({ accessToken: access_token });
-        } catch (err) {
-          console.error('Call initialization failed:', err);
-          alert('Could not start call. Please check your connection.');
-          startBtn.disabled = false;
-          startBtn.innerText = 'Start Voice Session';
+        if (!startBtn) {
+          console.error('❌ Start Button not found in DOM.');
+          return;
         }
-      });
 
-      client.on('call_started', () => {
-        document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
-      });
+        startBtn.addEventListener('click', async () => {
+          console.log("🖱️ Start Button Clicked");
+          const name = document.getElementById('name').value;
+          const email = document.getElementById('email').value;
+          const businessName = document.getElementById('businessName').value;
+          const website = document.getElementById('website').value;
 
-      client.on('call_ended', () => {
-        location.reload();
-      });
+          if (!name || !email) {
+            alert('Please provide your name and email to start.');
+            return;
+          }
 
-      stopBtn.onclick = () => client.stopCall();
-    };
+          startBtn.disabled = true;
+          startBtn.innerText = 'Initializing...';
+          console.log("🧪 Requesting access token for:", email);
+
+          try {
+            const res = await fetch('/create-web-call', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                firstName: name,
+                email: email,
+                website: website,
+                businessName: businessName
+              })
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(errorData.error || 'Failed to create call');
+            }
+
+            const { access_token } = await res.json();
+            console.log("🔑 Access token received. Starting Voice Session...");
+
+            document.getElementById('setup-ui').style.display = 'none';
+            document.getElementById('call-ui').style.display = 'block';
+
+            await client.startCall({ accessToken: access_token });
+          } catch (err) {
+            console.error('🚨 Call initialization failed:', err);
+            alert(`Could not start session: ${err.message}`);
+            startBtn.disabled = false;
+            startBtn.innerText = 'Start Voice Session';
+          }
+        });
+
+        client.on('call_started', () => {
+          console.log("🎙️ Session Live");
+          document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
+        });
+
+        client.on('call_ended', () => {
+          console.log("🏁 Session Ended");
+          location.reload();
+        });
+
+        if (stopBtn) {
+          stopBtn.onclick = () => {
+            console.log("🛑 Manual Stop Triggered");
+            client.stopCall();
+          };
+        }
+      };
+
+      setupButton();
+    });
   </script>
 </body>
 
