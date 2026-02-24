@@ -133,123 +133,100 @@ app.post("/create-web-call", async (req, res) => {
   // ── Step 2: Auto-Scraper (Smart Multi-Page Extraction) ──────────────────
   let scrapedKnowledge = "";
   if (website) {
+    console.log(`   🌐 Requesting Smart Scrape for: ${website}`);
+
+    // Create a Promise that rejects after 15 seconds
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Scrape timeout")), 15000)
+    );
+
     try {
-      console.log(`   🌐 Starting Smart Scrape for: ${website}`);
+      // Run the entire scrape process with a 15-second cap
+      await Promise.race([
+        (async () => {
+          // 1. Identify high-value sub-pages
+          let targetUrls = [website];
+          try {
+            const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+              },
+              body: JSON.stringify({ url: website, search: "services pricing about team products", limit: 5 }),
+            });
 
-      // 1. Identify high-value sub-pages (About, Services, Pricing)
-      let targetUrls = [website];
-      try {
-        const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
-          },
-          body: JSON.stringify({
-            url: website,
-            search: "services pricing about team products",
-            limit: 10
-          }),
-        });
-
-        if (mapRes.ok) {
-          const mapData = await mapRes.json();
-          let discoveredLinks = mapData.links || [];
-
-          // Prioritize links that contain "service"
-          const serviceLinks = discoveredLinks.filter(l => l.toLowerCase().includes("service"));
-          const otherLinks = discoveredLinks.filter(l => !l.toLowerCase().includes("service"));
-          discoveredLinks = [...serviceLinks, ...otherLinks];
-
-          discoveredLinks.forEach(link => {
-            if (!targetUrls.includes(link) && targetUrls.length < 5) {
-              targetUrls.push(link);
+            if (mapRes.ok) {
+              const mapData = await mapRes.json();
+              (mapData.links || []).forEach(link => {
+                if (!targetUrls.includes(link) && targetUrls.length < 3) targetUrls.push(link);
+              });
             }
+          } catch (e) { console.log("   ⚠️ Map skipped."); }
+
+          // 2. Scrape in parallel
+          console.log(`   🔎 Scraping ${targetUrls.length} pages...`);
+          const scrapePromises = targetUrls.map(async (url) => {
+            try {
+              const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+                },
+                body: JSON.stringify({
+                  url,
+                  formats: ["json"],
+                  onlyMainContent: true,
+                  jsonOptions: {
+                    schema: {
+                      type: "object",
+                      properties: {
+                        services: { type: "string" },
+                        hours: { type: "string" },
+                        pricing: { type: "string" }
+                      }
+                    }
+                  }
+                }),
+              });
+              return res.ok ? await res.json() : null;
+            } catch (e) { return null; }
           });
-          console.log(`   📂 Targeted ${targetUrls.length} relevant pages: ${targetUrls.join(", ")}`);
-        }
-      } catch (mapErr) {
-        console.log("   ⚠️ Map discovery failed, proceeding with primary URL only.");
-      }
 
-      // 2. Scrape all target pages in parallel
-      console.log(`   🔎 Scraping ${targetUrls.length} pages in parallel...`);
-      const scrapePromises = targetUrls.slice(0, 3).map(async (url) => {
-        const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
-          },
-          body: JSON.stringify({
-            url: url,
-            formats: ["json"],
-            waitFor: 4000,
-            jsonOptions: {
-              schema: {
-                type: "object",
-                properties: {
-                  business_hours: { type: "string" },
-                  owner_names: { type: "string" },
-                  full_list_of_services_offered: { type: "string" },
-                  pricing_info: { type: "string" },
-                  contact_details: { type: "string" },
-                  company_mission: { type: "string" }
-                }
-              }
-            }
-          }),
-        });
-        return res.ok ? await res.json() : null;
-      });
+          const results = await Promise.all(scrapePromises);
 
-      const results = await Promise.all(scrapePromises);
+          let mergedServices = [];
+          let mergedHours = [];
 
-      // 3. Merge results (prioritize non-empty fields)
-      let mergedData = {
-        hours: [],
-        owners: [],
-        services: [],
-        pricing: [],
-        contact: [],
-        vibe: []
-      };
+          results.forEach(r => {
+            const d = r?.data?.json;
+            if (d?.services) mergedServices.push(d.services);
+            if (d?.hours) mergedHours.push(d.hours);
+          });
 
-      results.forEach(r => {
-        const d = r?.data?.json;
-        if (!d) return;
-        if (d.business_hours && !mergedData.hours.includes(d.business_hours)) mergedData.hours.push(d.business_hours);
-        if (d.owner_names && !mergedData.owners.includes(d.owner_names)) mergedData.owners.push(d.owner_names);
-        if (d.full_list_of_services_offered && !mergedData.services.includes(d.full_list_of_services_offered)) mergedData.services.push(d.full_list_of_services_offered);
-        if (d.pricing_info && !mergedData.pricing.includes(d.pricing_info)) mergedData.pricing.push(d.pricing_info);
-        if (d.contact_details && !mergedData.contact.includes(d.contact_details)) mergedData.contact.push(d.contact_details);
-        if (d.company_mission && !mergedData.vibe.includes(d.company_mission)) mergedData.vibe.push(d.company_mission);
-      });
-
-      scrapedKnowledge =
-        `Business Hours: ${mergedData.hours.join(" | ") || "Not found"}\n` +
-        `Owner/Leadership: ${mergedData.owners.join(" | ") || "Not found"}\n` +
-        `Services Offered (COMPLETE LIST): ${mergedData.services.join("\n") || "Not found"}\n` +
-        `Pricing: ${mergedData.pricing.join(" | ") || "Not found"}\n` +
-        `Contact Info: ${mergedData.contact.join(" | ") || "Not found"}\n` +
-        `Mission/Vibe: ${mergedData.vibe.join(" | ") || "Not found"}`;
-
-      console.log(`   ✅ Multi-page extraction complete.`);
+          scrapedKnowledge = `
+            BUSINESS CONTEXT:
+            Services: ${mergedServices.join("\n") || "Refer to website"}
+            Hours: ${mergedHours.join(" | ") || "Refer to website"}
+          `.trim();
+        })(),
+        timeoutPromise
+      ]);
+      console.log(`   ✅ Extraction complete.`);
     } catch (err) {
-      console.error("   ❌ Smart Scrape error:", err.message);
+      console.error("   ⚠️ Scrape failed or timed out:", err.message);
     }
   }
 
   // Fallback if no website or scraping failed
   if (!scrapedKnowledge) {
     scrapedKnowledge = `
-      Bloom & Stem Florist is a luxury boutique flower shop located in downtown. 
-      We specialize in bespoke floral arrangements for weddings, events, and daily deliveries. 
-      Hours: Mon-Sat 8am-7pm. 
-      Services: Custom bouquets, gift baskets, and event styling. 
-      Booking: Customers can book consultations or order flowers through our online portal.
+      CONTEXT: We are currently reviewing the website ${website || "provided"}. 
+      Please greet the caller warmly and tell them we are specialized in luxury services. 
+      If they ask for specifics, offer to have a human follow up.
     `.trim();
-    console.log("   🌸 Using fallback business context (Bloom & Stem)");
+    console.log("   ℹ️ Using generic fallback context");
   }
 
   // ── Step 3: Create Retell Web Call ─────────────────────────────────────────
