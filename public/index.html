@@ -185,9 +185,13 @@
         <label>Business Name (Optional)</label>
         <input type="text" id="businessName" placeholder="Aura MedSpa">
       </div>
+      <div class="form-group">
+        <label>Website URL (Optional)</label>
+        <input type="text" id="website" placeholder="https://yourbusiness.com">
+      </div>
 
       <button class="btn" id="start-btn">Start Voice Session</button>
-      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.0.7</div>
+      <div style="font-size: 10px; color: #333; margin-top: 20px;">v1.0.8</div>
     </div>
 
     <div id="call-ui">
@@ -207,7 +211,7 @@
 
   <script>
     (function () {
-      console.log("🚀 Agent v1.0.7 Booting...");
+      console.log("🚀 Agent v1.0.8 Booting...");
 
       const init = () => {
         // Try all possible global locations for the SDK
@@ -242,7 +246,8 @@
               body: JSON.stringify({
                 firstName: name,
                 email: email,
-                businessName: document.getElementById('businessName').value
+                businessName: document.getElementById('businessName').value,
+                website: document.getElementById('website').value
               })
             });
 
