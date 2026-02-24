@@ -1,5 +1,5 @@
 /**
- * Universal Agent AI Receptionist - Build 1.1.0
+ * Universal Agent AI Receptionist - Build 1.1.2
  */
 import express from "express";
 import cors from "cors";
@@ -38,6 +38,7 @@ async function fetchWithRetry(url, options, retries = 3) {
  * Handles Contact Upsert, Firecrawl Scrape, and Retell Call Initiation
  */
 app.post("/create-web-call", async (req, res) => {
+  console.log("\n📥 RAW WEB CALL REQUEST:", JSON.stringify(req.body, null, 2));
   const { firstName, lastName, phone, email, businessName, website } = req.body;
   console.log(`\n🚀 NEW CALL REQUEST: ${businessName} (${website})`);
 
@@ -190,10 +191,23 @@ app.post("/check-availability", async (req, res) => {
 /**
  * 3. Book Appointment
  */
+
 app.post("/book-appointment", async (req, res) => {
+  // LOG ENTIRE BODY FOR DEBUGGING
+  console.log("\n📥 RAW BOOKING REQUEST BODY:", JSON.stringify(req.body, null, 2));
+
   const { args } = req.body;
-  const { date_time, email, first_name } = args || {};
-  console.log(`\n📅 BOOKING REQUEST: ${first_name} (${email}) at ${date_time}`);
+  // Fallbacks for common naming variations from AI tool calls
+  const date_time = args?.date_time || args?.dateTime || args?.selectedSlot;
+  const email = args?.email;
+  const first_name = args?.first_name || args?.firstName || args?.name;
+
+  console.log(`\n📅 PARSED BOOKING: ${first_name} (${email}) at ${date_time}`);
+
+  if (!email || !date_time) {
+    console.error("   ❌ Missing required arguments (email/date_time)");
+    return res.status(400).json({ error: "Missing required info: email and time" });
+  }
 
   const GHL_HEADERS = {
     Authorization: `Bearer ${process.env.GHL_API_KEY}`,
