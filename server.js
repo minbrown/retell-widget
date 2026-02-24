@@ -1,5 +1,5 @@
 /**
- * Universal Agent AI Receptionist - Build 1.1.2
+ * Universal Agent AI Receptionist - Build 1.1.3
  */
 import express from "express";
 import cors from "cors";
@@ -127,6 +127,12 @@ app.post("/create-web-call", async (req, res) => {
     });
 
     const retellData = await retellRes.json();
+    if (!retellRes.ok) {
+      console.error("   ❌ Retell API Error:", JSON.stringify(retellData));
+      return res.status(retellRes.status).json({ error: "Retell Session Error", details: retellData });
+    }
+
+    console.log("   ✅ Web Call Access Token Generated!");
     return res.json({ access_token: retellData.access_token });
 
   } catch (err) {
