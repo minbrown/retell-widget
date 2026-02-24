@@ -227,7 +227,8 @@ app.post("/book-appointment", async (req, res) => {
 
     // 2. Schedule Appointment
     const start = new Date(date_time);
-    const end = new Date(start.getTime() + 30 * 60000); // 30 min duration
+    const duration = 30; // 30 min default for this calendar
+    const end = new Date(start.getTime() + duration * 60000);
 
     const bookBody = {
       calendarId: process.env.GHL_CALENDAR_ID,
@@ -236,13 +237,15 @@ app.post("/book-appointment", async (req, res) => {
       startTime: date_time,
       endTime: end.toISOString(),
       title: `Universal Appt: ${first_name}`,
-      appointmentStatus: "confirmed"
+      appointmentStatus: "confirmed",
+      assignedUserId: "4aMJQN6dJQHbu031eZ7F", // Required for this RR calendar
+      ignoreFreeSlotValidation: true
     };
 
-    console.log("   📡 Sending Booking Request to GHL...");
-    const bookRes = await fetch("https://services.leadconnectorhq.com/calendars/events/", {
+    console.log("   📡 Sending Booking Request to Verified GHL v2 Endpoint...");
+    const bookRes = await fetch("https://services.leadconnectorhq.com/calendars/events/appointments", {
       method: "POST",
-      headers: GHL_HEADERS,
+      headers: { ...GHL_HEADERS, Version: "2021-04-15" },
       body: JSON.stringify(bookBody)
     });
 
