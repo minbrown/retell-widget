@@ -246,9 +246,13 @@ app.post("/book-appointment", async (req, res) => {
       endTime: end.toISOString(),
       title: `AI Appointment: ${first_name}`,
       appointmentStatus: "confirmed",
-      assignedUserId: "4aMJQN6dJQHbu031eZ7F",
       ignoreFreeSlotValidation: true
     };
+
+    // Only add assignedUserId if it exists in env (for Round Robin calendars)
+    if (process.env.GHL_ASSIGNED_USER_ID) {
+      bookBody.assignedUserId = process.env.GHL_ASSIGNED_USER_ID;
+    }
 
     console.log("   📡 Sending Booking Request to GHL (v2 Appointments)...");
     const bookRes = await fetch("https://services.leadconnectorhq.com/calendars/events/appointments", {
