@@ -43,10 +43,10 @@ async function fetchWithRetry(url, options, retries = 3) {
 }
 
 // ── POST /create-web-call ─────────────────────────────────────────────────────
-// Accepts: { firstName, lastName, phone, email }
+// Accepts: { firstName, lastName, phone, email, businessName, website }
 // Returns: { access_token }
 app.post("/create-web-call", async (req, res) => {
-  const { firstName, lastName, phone, email } = req.body;
+  const { firstName, lastName, phone, email, businessName, website } = req.body;
 
   // Validate required fields
   if (!firstName || !phone || !email) {
@@ -84,6 +84,8 @@ app.post("/create-web-call", async (req, res) => {
       if (firstName && existing.firstName !== firstName) updates.firstName = firstName;
       if (lastName && existing.lastName !== lastName) updates.lastName = lastName;
       if (email && existing.email !== email) updates.email = email;
+      if (businessName && existing.companyName !== businessName) updates.companyName = businessName;
+      if (website && existing.website !== website) updates.website = website;
 
       if (Object.keys(updates).length > 0) {
         console.log(`   🔄 Updating existing GHL contact with new info:`, JSON.stringify(updates));
@@ -93,6 +95,17 @@ app.post("/create-web-call", async (req, res) => {
         );
         console.log(`   ✅ GHL contact updated (id: ${ghlContactId})`);
       }
+
+      // Always ensure the "Retell Widget Lead" tag is present to trigger any immediate workflows
+      await fetchWithRetry(
+        `https://services.leadconnectorhq.com/contacts/${ghlContactId}/tags`,
+        {
+          method: "POST",
+          headers: GHL_HEADERS,
+          body: JSON.stringify({ tags: ["Retell Widget Lead"] }),
+        }
+      );
+      console.log(`   🏷️ Tag 'Retell Widget Lead' synced for contact ${ghlContactId}`);
     } else {
       const createRes = await fetchWithRetry("https://services.leadconnectorhq.com/contacts/", {
         method: "POST",
@@ -102,8 +115,11 @@ app.post("/create-web-call", async (req, res) => {
           lastName: lastName || "",
           email,
           phone,
+          companyName: businessName || "",
+          website: website || "",
           locationId: process.env.GHL_LOCATION_ID,
           source: "Retell Voice Widget",
+          tags: ["Retell Widget Lead"],
         }),
       });
       const createData = createRes.ok ? await createRes.json() : null;
@@ -114,8 +130,135 @@ app.post("/create-web-call", async (req, res) => {
     console.error("   ❌ GHL upsert error:", err.message);
   }
 
-  // ── Step 2: Create Retell Web Call ─────────────────────────────────────────
+  // ── Step 2: Auto-Scraper (Smart Multi-Page Extraction) ──────────────────
+  let scrapedKnowledge = "";
+  if (website) {
+    try {
+      console.log(`   🌐 Starting Smart Scrape for: ${website}`);
+
+      // 1. Identify high-value sub-pages (About, Services, Pricing)
+      let targetUrls = [website];
+      try {
+        const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+          },
+          body: JSON.stringify({
+            url: website,
+            search: "services pricing about team products",
+            limit: 10
+          }),
+        });
+
+        if (mapRes.ok) {
+          const mapData = await mapRes.json();
+          let discoveredLinks = mapData.links || [];
+
+          // Prioritize links that contain "service"
+          const serviceLinks = discoveredLinks.filter(l => l.toLowerCase().includes("service"));
+          const otherLinks = discoveredLinks.filter(l => !l.toLowerCase().includes("service"));
+          discoveredLinks = [...serviceLinks, ...otherLinks];
+
+          discoveredLinks.forEach(link => {
+            if (!targetUrls.includes(link) && targetUrls.length < 5) {
+              targetUrls.push(link);
+            }
+          });
+          console.log(`   📂 Targeted ${targetUrls.length} relevant pages: ${targetUrls.join(", ")}`);
+        }
+      } catch (mapErr) {
+        console.log("   ⚠️ Map discovery failed, proceeding with primary URL only.");
+      }
+
+      // 2. Scrape all target pages in parallel
+      console.log(`   🔎 Scraping ${targetUrls.length} pages in parallel...`);
+      const scrapePromises = targetUrls.slice(0, 3).map(async (url) => {
+        const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+          },
+          body: JSON.stringify({
+            url: url,
+            formats: ["json"],
+            waitFor: 4000,
+            jsonOptions: {
+              schema: {
+                type: "object",
+                properties: {
+                  business_hours: { type: "string" },
+                  owner_names: { type: "string" },
+                  full_list_of_services_offered: { type: "string" },
+                  pricing_info: { type: "string" },
+                  contact_details: { type: "string" },
+                  company_mission: { type: "string" }
+                }
+              }
+            }
+          }),
+        });
+        return res.ok ? await res.json() : null;
+      });
+
+      const results = await Promise.all(scrapePromises);
+
+      // 3. Merge results (prioritize non-empty fields)
+      let mergedData = {
+        hours: [],
+        owners: [],
+        services: [],
+        pricing: [],
+        contact: [],
+        vibe: []
+      };
+
+      results.forEach(r => {
+        const d = r?.data?.json;
+        if (!d) return;
+        if (d.business_hours && !mergedData.hours.includes(d.business_hours)) mergedData.hours.push(d.business_hours);
+        if (d.owner_names && !mergedData.owners.includes(d.owner_names)) mergedData.owners.push(d.owner_names);
+        if (d.full_list_of_services_offered && !mergedData.services.includes(d.full_list_of_services_offered)) mergedData.services.push(d.full_list_of_services_offered);
+        if (d.pricing_info && !mergedData.pricing.includes(d.pricing_info)) mergedData.pricing.push(d.pricing_info);
+        if (d.contact_details && !mergedData.contact.includes(d.contact_details)) mergedData.contact.push(d.contact_details);
+        if (d.company_mission && !mergedData.vibe.includes(d.company_mission)) mergedData.vibe.push(d.company_mission);
+      });
+
+      scrapedKnowledge =
+        `Business Hours: ${mergedData.hours.join(" | ") || "Not found"}\n` +
+        `Owner/Leadership: ${mergedData.owners.join(" | ") || "Not found"}\n` +
+        `Services Offered (COMPLETE LIST): ${mergedData.services.join("\n") || "Not found"}\n` +
+        `Pricing: ${mergedData.pricing.join(" | ") || "Not found"}\n` +
+        `Contact Info: ${mergedData.contact.join(" | ") || "Not found"}\n` +
+        `Mission/Vibe: ${mergedData.vibe.join(" | ") || "Not found"}`;
+
+      console.log(`   ✅ Multi-page extraction complete.`);
+    } catch (err) {
+      console.error("   ❌ Smart Scrape error:", err.message);
+    }
+  }
+
+  // Fallback if no website or scraping failed
+  if (!scrapedKnowledge) {
+    scrapedKnowledge = `
+      Bloom & Stem Florist is a luxury boutique flower shop located in downtown. 
+      We specialize in bespoke floral arrangements for weddings, events, and daily deliveries. 
+      Hours: Mon-Sat 8am-7pm. 
+      Services: Custom bouquets, gift baskets, and event styling. 
+      Booking: Customers can book consultations or order flowers through our online portal.
+    `.trim();
+    console.log("   🌸 Using fallback business context (Bloom & Stem)");
+  }
+
+  // ── Step 3: Create Retell Web Call ─────────────────────────────────────────
   try {
+    console.log("   📜 Final Context being sent to Retell:");
+    console.log("-----------------------------------------");
+    console.log(scrapedKnowledge);
+    console.log("-----------------------------------------");
+
     const retellRes = await fetch("https://api.retellai.com/v2/create-web-call", {
       method: "POST",
       headers: {
@@ -125,12 +268,23 @@ app.post("/create-web-call", async (req, res) => {
       body: JSON.stringify({
         agent_id: process.env.RETELL_AGENT_ID,
         // Pass GHL ID in metadata so we get it back in the webhook!
-        metadata: { firstName, lastName, phone, email, ghl_contact_id: ghlContactId },
+        metadata: {
+          firstName,
+          lastName,
+          phone,
+          email,
+          businessName,
+          website,
+          ghl_contact_id: ghlContactId
+        },
         retell_llm_dynamic_variables: {
           "contact.first_name": firstName,
           "contact.last_name": lastName || "",
           "contact.email": email,
           "contact.phone": phone,
+          "contact.company_name": businessName || "",
+          "contact.website": website || "",
+          "contact.business_context": scrapedKnowledge,
         },
       }),
     });
@@ -269,6 +423,8 @@ app.post("/retell-post-call", async (req, res) => {
     const updatedFirstName = custom["first_name"] || custom["First Name"];
     const updatedLastName = custom["last_name"] || custom["Last Name"];
     const updatedEmail = custom["email"] || custom["Email"];
+    const updatedBusinessName = custom["company_name"] || custom["business_name"] || custom["Business Name"];
+    const updatedWebsite = custom["website"] || custom["Website"];
 
     const contactUpdateBody = {
       customFields: [
@@ -280,10 +436,12 @@ app.post("/retell-post-call", async (req, res) => {
       ]
     };
 
-    // If Retell analysis found a new name or email, add to update
+    // If Retell analysis found a new name, email, or business info, add to update
     if (updatedFirstName) contactUpdateBody.firstName = updatedFirstName;
     if (updatedLastName) contactUpdateBody.lastName = updatedLastName;
     if (updatedEmail) contactUpdateBody.email = updatedEmail;
+    if (updatedBusinessName) contactUpdateBody.companyName = updatedBusinessName;
+    if (updatedWebsite) contactUpdateBody.website = updatedWebsite;
 
     console.log(`   🔄 Syncing latest call data to GHL contact...`);
     const updateRes = await fetchWithRetry(
@@ -301,22 +459,94 @@ app.post("/retell-post-call", async (req, res) => {
       console.log("   ⚠️ Contact update warning:", await updateRes.text());
     }
 
-    // ── Add tag ───────────────────────────────────────────────────────────
+    // ── Add tags ──────────────────────────────────────────────────────────
+    const tagsToAdd = ["Retell Call Completed"];
+
+    // Auto-trigger booking email if AI requested it in summary
+    if (callSummary.includes("BOOKING_REQUESTED: YES")) {
+      console.log("   📧 Booking link requested by AI! Adding trigger tag...");
+      tagsToAdd.push("send-booking-link");
+    }
+
     await fetchWithRetry(
       `https://services.leadconnectorhq.com/contacts/${targetContactId}/tags`,
       {
         method: "POST",
         headers: GHL_HEADERS,
-        body: JSON.stringify({ tags: ["Retell Call Completed"] }),
+        body: JSON.stringify({ tags: tagsToAdd }),
       }
     );
-    console.log("   ✅ Tag 'Retell Call Completed' added.");
+    console.log(`   ✅ GHL tags added: ${tagsToAdd.join(", ")}`);
 
     return res.status(200).json({ received: true, success: true });
 
   } catch (err) {
     console.error("   ❌ Post-call processing error:", err.message);
     return res.status(200).json({ received: true, error: err.message });
+  }
+});
+
+// ── New: POST /book-appointment ──────────────────────────────────────────────
+// This endpoint is called by Retell's "Functions" tool.
+// It handles checking availability and creating appointments in GHL.
+app.post("/book-appointment", async (req, res) => {
+  const { args } = req.body; // Retell sends arguments in the 'args' object
+  const { date_time, email, first_name } = args || {};
+
+  console.log(`\n📅 Booking Request received for ${first_name} (${email}) at ${date_time}`);
+
+  if (!date_time || !email) {
+    return res.status(400).json({ error: "date_time and email are required for booking." });
+  }
+
+  try {
+    const GHL_HEADERS = {
+      Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+      "Content-Type": "application/json",
+      Version: "2021-07-28",
+    };
+
+    // 1. Find the contact ID by email (to ensure we link the appointment correctly)
+    const searchUrl = `https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=${process.env.GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`;
+    const searchRes = await fetchWithRetry(searchUrl, { headers: GHL_HEADERS });
+    const searchData = searchRes.ok ? await searchRes.json() : null;
+    const contactId = searchData?.contact?.id;
+
+    if (!contactId) {
+      console.log("   ⚠️ Contact not found for booking, creating a temporary one...");
+      // Optional: You could create them here, but we usually have them from the start of the call
+    }
+
+    // 2. Create the appointment in GHL
+    // Note: process.env.GHL_CALENDAR_ID must be set in your .env
+    const bookingUrl = `https://services.leadconnectorhq.com/calendars/events/`;
+    const bookingBody = {
+      calendarId: process.env.GHL_CALENDAR_ID,
+      locationId: process.env.GHL_LOCATION_ID,
+      contactId: contactId,
+      startTime: date_time, // Expected format: ISO 8601 (e.g., 2024-05-20T14:00:00Z)
+      title: `MedSpa Appt: ${first_name || 'Patient'}`,
+      appointmentStatus: "confirmed"
+    };
+
+    const bookingRes = await fetchWithRetry(bookingUrl, {
+      method: "POST",
+      headers: GHL_HEADERS,
+      body: JSON.stringify(bookingBody)
+    });
+
+    if (bookingRes.ok) {
+      console.log("   ✅ Appointment successfully booked in GHL!");
+      return res.json({ status: "success", message: "Appointment confirmed. We look forward to seeing you!" });
+    } else {
+      const errorData = await bookingRes.text();
+      console.error("   ❌ GHL Booking Error:", errorData);
+      return res.status(500).json({ status: "error", message: "That time slot is no longer available. Could we try another time?" });
+    }
+
+  } catch (err) {
+    console.error("   ❌ Internal Booking Error:", err.message);
+    return res.status(500).json({ error: "Server error during booking." });
   }
 });
 

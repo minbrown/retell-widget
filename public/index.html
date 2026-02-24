@@ -455,6 +455,18 @@
         <div class="error-msg" id="email-error">Please enter a valid email address.</div>
       </div>
 
+      <!-- New Fields: Business Name & Website -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="businessName">Business Name</label>
+          <input type="text" id="businessName" placeholder="Aura MedSpa" />
+        </div>
+        <div class="form-group">
+          <label for="website">Website</label>
+          <input type="url" id="website" placeholder="https://auramedspa.com" />
+        </div>
+      </div>
+
       <button class="btn btn-primary" id="start-btn" onclick="handleStartCall()">
         🚀 Start Voice Call
       </button>
@@ -547,6 +559,8 @@
       const lastName = document.getElementById("lastName").value.trim();
       const phone = document.getElementById("phone").value.trim();
       const email = document.getElementById("email").value.trim();
+      const businessName = document.getElementById("businessName").value.trim();
+      const website = document.getElementById("website").value.trim();
 
       if (!validateForm(firstName, lastName, phone, email)) return;
 
@@ -555,12 +569,12 @@
 
       try {
         // ── 1. Ask backend to upsert GHL contact + create Retell web call ──
-        // IMPORTANT: The access_token expires in 30 seconds — start the call
-        //            immediately after receiving it.
+        startBtn.textContent = "🔍 Reviewing your website...";
+
         const res = await fetch("/create-web-call", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ firstName, lastName, phone, email }),
+          body: JSON.stringify({ firstName, lastName, phone, email, businessName, website }),
         });
 
         if (!res.ok) {
@@ -628,7 +642,7 @@
       const scheduleBtn = document.getElementById("schedule-btn");
       if (scheduleBtn) {
         console.log("Retell: Showing schedule button.");
-        scheduleBtn.style.setProperty("display", "block", "important");
+        scheduleBtn.style.display = "block";
       } else {
         console.error("Retell: Schedule button element not found!");
       }
