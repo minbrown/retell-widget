@@ -141,13 +141,15 @@ app.post("/check-availability", async (req, res) => {
     Version: "2021-07-28"
   };
 
-  // Window: Now to 10 days from now
-  const startDate = Date.now();
-  const endDate = startDate + (10 * 24 * 60 * 60 * 1000);
+  // Window: Now to 14 days from now, using ISO format for GHL v2
+  const now = new Date();
+  const startDate = now.toISOString();
+  const end = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000));
+  const endDate = end.toISOString();
 
-  const url = `https://services.leadconnectorhq.com/calendars/free-slots?calendarId=${process.env.GHL_CALENDAR_ID}&startDate=${startDate}&endDate=${endDate}`;
+  const url = `https://services.leadconnectorhq.com/calendars/free-slots?calendarId=${process.env.GHL_CALENDAR_ID}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
 
-  console.log(`   📡 Querying GHL: ${url}`);
+  console.log(`   📡 Querying GHL (ISO): ${url}`);
 
   try {
     const response = await fetch(url, { headers: GHL_HEADERS });
@@ -158,7 +160,7 @@ app.post("/check-availability", async (req, res) => {
       return res.status(response.status).json({ error: "GHL Sync Error", details: data });
     }
 
-    // Flatten slots from GHL's date-keyed object
+    // Flatten slots (keys are dates)
     let slots = [];
     if (data && typeof data === 'object') {
       Object.keys(data).forEach(day => {
@@ -169,15 +171,17 @@ app.post("/check-availability", async (req, res) => {
     }
 
     console.log(`   ✅ Found ${slots.length} total slots.`);
+    if (slots.length === 0) {
+      console.log("   ⚠️ GHL returned 0 slots. Raw Response:", JSON.stringify(data));
+    }
 
-    // Return 10 slots to keep the AI response concise
     return res.json({
-      available_slots: slots.slice(0, 10),
-      message: slots.length > 0 ? "Success" : "No slots found on calendar."
+      available_slots: slots.slice(0, 12),
+      message: slots.length > 0 ? "Success" : "No slots found. Check staff availability in GHL."
     });
   } catch (e) {
-    console.error("   ❌ Server Exception:", e.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("   ❌ Server Error:", e.message);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
