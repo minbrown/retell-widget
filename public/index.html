@@ -224,49 +224,64 @@
   <!-- SDK and Logic -->
   <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/bundle.js"></script>
   <script>
-    const { RetellWebClient } = window.RetellSDK;
-    const client = new RetellWebClient();
+    window.onload = () => {
+      const { RetellWebClient } = window.RetellSDK;
+      const client = new RetellWebClient();
+      const startBtn = document.getElementById('start-btn');
+      const stopBtn = document.getElementById('stop-btn');
 
-    document.getElementById('start-btn').onclick = async () => {
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const businessName = document.getElementById('businessName').value;
-      const website = document.getElementById('website').value;
+      startBtn.addEventListener('click', async () => {
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const businessName = document.getElementById('businessName').value;
+        const website = document.getElementById('website').value;
 
-      if (!name || !email) return alert('Please provide name and email');
+        if (!name || !email) {
+          alert('Please provide name and email');
+          return;
+        }
 
-      document.getElementById('start-btn').disabled = true;
-      document.getElementById('start-btn').innerText = 'Initializing...';
+        startBtn.disabled = true;
+        startBtn.innerText = 'Initializing...';
 
-      const res = await fetch('/create-web-call', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          firstName: name,
-          email,
-          website,
-          businessName
-        })
+        try {
+          const res = await fetch('/create-web-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              firstName: name,
+              email: email,
+              website: website,
+              businessName: businessName
+            })
+          });
+
+          if (!res.ok) throw new Error('Failed to create call');
+
+          const { access_token } = await res.json();
+
+          document.getElementById('setup-ui').style.display = 'none';
+          document.getElementById('call-ui').style.display = 'block';
+
+          await client.startCall({ accessToken: access_token });
+        } catch (err) {
+          console.error('Call initialization failed:', err);
+          alert('Could not start call. Please check your connection.');
+          startBtn.disabled = false;
+          startBtn.innerText = 'Start Voice Session';
+        }
       });
-      const { access_token } = await res.json();
 
-      document.getElementById('setup-ui').style.display = 'none';
-      document.getElementById('call-ui').style.display = 'block';
+      client.on('call_started', () => {
+        document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
+      });
 
-      client.startCall({ accessToken: access_token });
+      client.on('call_ended', () => {
+        location.reload();
+      });
+
+      stopBtn.onclick = () => client.stopCall();
     };
-
-    client.on('call_started', () => {
-      document.getElementById('status-text').innerHTML = '<span class="status-dot"></span> Live Session';
-    });
-
-    client.on('call_ended', () => {
-      location.reload();
-    });
-
-    document.getElementById('stop-btn').onclick = () => client.stopCall();
   </script>
 </body>
 
